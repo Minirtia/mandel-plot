@@ -3,16 +3,10 @@ import cmath
 from PIL import Image, ImageDraw
 import tkinter as tk
 from tkinter import font
-
-#returns a color inversely proportional to divergence speed of the mandelbrot series of z
-def mandelColor(z, iter_max):
-    m = mandelbrot(z, iter_max)
-    color = 255 - int(255 * m / iter_max)
-    return color
-
+import color_modules as cm
 
 class MandelPlotter():
-    def __init__(self, p_height, center, unit_scale, iter_max, aspect):
+    def __init__(self, p_height, center, unit_scale, iter_max, aspect, bg_color):
         #calculate resolution based on fixed aspect ratio
         self.aspect = aspect
         self.p_width = int(p_height * aspect)
@@ -22,7 +16,7 @@ class MandelPlotter():
         self.unit_scale = unit_scale
         self.iter_max =iter_max
 
-        self.bg_color = (0, 0, 0) #TODO implement hex color picker
+        self.bg_color = bg_color
 
         self._set_picture_settings()
         self._find_bounds()
@@ -33,32 +27,30 @@ class MandelPlotter():
         self._im = Image.new('RGB', (self.p_width, self.p_height), self.bg_color)
         self._draw = ImageDraw.Draw(self._im)
 
+    def _get_color(self, comp):
+        m = mandelbrot(comp, self.iter_max)
+        if m < self.iter_max:
+            red = self._get_red(comp, m)
+            blue = self._get_blue(comp, m)
+            green = self._get_green(comp, m)
+            return (red, blue, green)
+        return self.bg_color
 
-    #given a complex z, finds the corresponding RGB triple
-    def _get_color(self, z):
-        red = self._get_red(z)
-        blue = self._get_blue(z)
-        green = self._get_green(z)
-        return (red, blue, green)
+    def _get_red(self, z, mandel):
+        return cm.axisColor(z.real, self.re_start, self.re_end)
 
-    def _get_red(self, z):
-        return mandelColor(z, self.iter_max)
+    def _get_blue(self, z, mandel):
+        return cm.axisColor(z.imag, self.im_start, self.im_end)
 
-    def _get_blue(self, z):
-        return mandelColor(z, self.iter_max)
+    def _get_green(self, z, mandel):
+        return cm.mandelColor(z, mandel, self.iter_max)
 
-    def _get_green(self, z):
-        return mandelColor(z, self.iter_max)
-
-
-    #sets bounds such that the imaginary axis is (-unit_scale + Im(center), unit_scale + Im(center)
     def _find_bounds(self):
-        self.im_start = - self.unit_scale + self.center.imag
+        self.im_start = - self.unit_scale + self.center.imag 
         self.im_end = self.unit_scale + self.center.imag
-        self.re_start = -(self.aspect * self.unit_scale) + self.center.imag
-        self.re_end = (self.aspect * self.unit_scale) + self.center.imag
+        self.re_start = -(self.aspect * self.unit_scale) + self.center.real
+        self.re_end = (self.aspect * self.unit_scale) + self.center.real
   
-    #converts pixels to complex numbers
     def _pixel_to_complex(self, x, y):
         z = complex(self.re_start + (x / self.p_width) * (self.re_end - self.re_start),
                     self.im_start + (y / self.p_height) * (self.im_end - self.im_start))
@@ -75,11 +67,13 @@ class MandelPlotter():
     def save_image(self):
         self._im.save('output.png', 'PNG')
 
-DEFAULT_PLOTTER = MandelPlotter(600, 0, 1, 30, 1.5)
+DEFAULT_PLOTTER = MandelPlotter(600, -1/2 , 1, 30, 1.5, 0x000000)
 
 def main():
     DEFAULT_PLOTTER.make_picture()
     DEFAULT_PLOTTER.save_image()
+    print("[", DEFAULT_PLOTTER.re_start, ", ", DEFAULT_PLOTTER.re_end,  
+          "]x[", DEFAULT_PLOTTER.im_start, ", ",  DEFAULT_PLOTTER.im_start, "]")
 
 if __name__=="__main__":
     main()
